@@ -19,7 +19,7 @@ export default function Modal({ toggleModal, url }) {
     return function cleanUp() {
       window.removeEventListener('keydown', escHandler);
     };
-  }, []);
+  });
 
   return (
     <div className="overlay" onClick={clickHandler}>
