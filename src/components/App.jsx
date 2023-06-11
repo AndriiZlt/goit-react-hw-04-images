@@ -1,76 +1,69 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
 import Searchbar from './Searchbar/Searchbar';
 import ImageGallery from './ImageGallery/ImageGallery';
 import Button from './Button/Button';
 import Modal from './Modal/Modal';
 import Loader from './Loader/Loader';
 
-class App extends React.Component {
-  state = {
-    query: '',
-    galleryItems: [],
-    page: 1,
-    modalOn: false,
-    modalUrl: '',
-    modalAlt: '',
-    status: 'idle',
-    scroll: 0,
-  };
+export default function App() {
+  const [query, setQuery] = useState('');
+  const [galleryItems, setGalleryItems] = useState([]);
+  const [page, setPage] = useState(1);
+  const [modalOn, setModalOn] = useState(false);
+  const [modalUrl, setModalUrl] = useState('');
+  const [modalAlt, setModalAlt] = useState('');
+  const [status, setStatus] = useState('idle');
+  const [scroll, setScroll] = useState(0);
 
-  componentDidUpdate(prevProps, prevState) {
-    if (
-      prevState.page !== this.state.page ||
-      prevState.query !== this.state.query
-    ) {
-      this.setState({
-        status: 'pending',
-      });
-      this.fetchFun(this.state.query, this.state.page);
+  useEffect(() => {
+    setStatus('pending');
+    fetchFun(query, page);
+  }, [page, query]);
+
+  const onFormSubmit = newQuery => {
+    if (query !== newQuery) {
+      setQuery(newQuery);
+      setPage(1);
+      setGalleryItems([]);
     }
-  }
-
-  onFormSubmit = query => {
-    this.setState(prevState => {
-      if (prevState.query !== query) {
-        return { query, page: 1, galleryItems: [] };
-      }
-    });
   };
 
-  fetchFun = (query, page) => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  function fetchFun(query, page) {
+    if (query === '') {
+      setStatus('resolved');
+      return;
+    }
+    console.log('Fetching query=' + query, 'page=' + page);
     fetch(
       `https://pixabay.com/api/?q=${query}&page=${page}&key=6707322-7bfef4d2355bcd2c21033e4e5&image_type=photo&orientation=horizontal&per_page=12`
     )
       .then(res => res.json())
-      .then(data => {
-        console.log('query=' + query, 'page=' + page);
-        this.setState(prevState => {
-          return {
-            galleryItems: [...prevState.galleryItems, ...data.hits],
-            status: 'resolved',
-          };
-        });
+      .then(function (data) {
+        console.log('images uploaded=', data.hits.length);
+        setGalleryItems(prevState => [...prevState, ...data.hits]);
+        if (data.hits.length === 0) {
+          setStatus('resolved empty');
+        } else {
+          setStatus('resolved');
+        }
       })
-      .then(() => this.scrolling())
       .catch(error => {
-        this.setState({
-          status: 'rejected',
-        });
+        setStatus('rejected');
         console.log(error);
         alert('Nothing was found.Try again.');
-      });
+      })
+      .finally(() => scrolling());
+  }
+
+  const toggleModal = () => {
+    underBackdropScrollHandler();
+    setModalOn(!modalOn);
   };
 
-  toggleModal = () => {
-    this.underBackdropScrollHandler();
-    this.setState(prevState => {
-      return { modalOn: !this.state.modalOn };
-    });
-  };
-
-  underBackdropScrollHandler = () => {
+  const underBackdropScrollHandler = () => {
     // Preventing scrolling under backdrop and margin-left issue
-    if (!this.state.modalOn) {
+    if (!modalOn) {
       const el = document.querySelector('.ImageGallery');
       const marginLeft = window
         .getComputedStyle(el, null)
@@ -84,73 +77,64 @@ class App extends React.Component {
       document.body.style.position = 'static';
       document.body.style.overflow = 'visible';
       document.body.style.top = '';
-      window.scrollTo(0, this.state.scroll);
+      window.scrollTo(0, scroll);
     }
   };
 
-  scrolling() {
+  function scrolling() {
     setTimeout(() => {
-      const { height: cardHeight } = document
-        .querySelector('.ImageGallery')
-        .firstElementChild.getBoundingClientRect();
-      window.scrollBy({
-        top: cardHeight * 4,
-        behavior: 'smooth',
-      });
+      if (document.querySelector('.ImageGallery').firstElementChild) {
+        const { height: cardHeight } = document
+          .querySelector('.ImageGallery')
+          .firstElementChild.getBoundingClientRect();
+        window.scrollBy({
+          top: cardHeight * 4,
+          behavior: 'smooth',
+        });
+      }
     }, 300);
   }
 
-  modalHandler = ({ dataset, alt }) => {
+  const modalHandler = ({ dataset, alt }) => {
     document.body.style.top = `-${window.scrollY}px`;
-    this.setState({
-      modalUrl: dataset.url,
-      modalAlt: alt,
-      scroll: window.scrollY,
-    });
-    this.toggleModal();
+    setModalUrl(dataset.url);
+    setModalAlt(alt);
+    setScroll(window.scrollY);
+    toggleModal();
   };
 
-  btnClickHandler = () => {
-    this.setState(prevState => {
-      return { page: prevState.page + 1 };
-    });
+  const btnClickHandler = () => {
+    setPage(prevState => prevState + 1);
   };
 
-  render() {
-    return (
-      <div
-        style={{
-          // height: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'flex-start',
-          alignItems: 'center',
-          fontSize: 40,
-          color: '#010101',
-        }}
-      >
-        {this.state.modalOn && (
-          <Modal
-            url={this.state.modalUrl}
-            alt={this.state.alt}
-            toggleModal={this.toggleModal}
-          />
-        )}
-        <Searchbar onSubmit={this.onFormSubmit} />
+  return (
+    <div
+      style={{
+        // height: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'flex-start',
+        alignItems: 'center',
+        fontSize: 40,
+        color: '#010101',
+      }}
+    >
+      {modalOn && (
+        <Modal url={modalUrl} alt={modalAlt} toggleModal={toggleModal} />
+      )}
+      <Searchbar onSubmit={onFormSubmit} />
 
-        <ImageGallery
-          galleryItems={this.state.galleryItems}
-          toggleModal={this.toggleModal}
-          modalHandler={this.modalHandler}
-        />
+      <ImageGallery
+        galleryItems={galleryItems}
+        toggleModal={toggleModal}
+        modalHandler={modalHandler}
+      />
 
-        {this.state.status === 'pending' && <Loader />}
-        {this.state.galleryItems.length > 0 && (
-          <Button btnClickHandler={this.btnClickHandler} />
-        )}
-      </div>
-    );
-  }
+      {status === 'pending' && <Loader />}
+      {status === 'resolved empty' && 'Nothing was found. Try something else.'}
+      {galleryItems.length > 0 && status !== 'resolved empty' && (
+        <Button btnClickHandler={btnClickHandler} />
+      )}
+    </div>
+  );
 }
-
-export default App;
