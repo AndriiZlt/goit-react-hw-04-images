@@ -1,12 +1,12 @@
 import PropTypes from 'prop-types';
-export default function Button({ btnClickHandler }) {
+export default function Button({ loadMoreClickHandler }) {
   return (
-    <button className="button" type="text" onClick={btnClickHandler}>
+    <button className="button" type="text" onClick={loadMoreClickHandler}>
       Load more
     </button>
   );
 }
 
 Button.propTypes = {
-  btnClickHandler: PropTypes.func.isRequired,
+  loadMoreClickHandler: PropTypes.func.isRequired,
 };

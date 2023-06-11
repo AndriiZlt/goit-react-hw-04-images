@@ -15,13 +15,10 @@ export default function App() {
   const [status, setStatus] = useState('idle');
   const [scroll, setScroll] = useState(0);
 
-  useEffect(() => {
-    setStatus('pending');
-    fetchFun(query, page);
-  }, [page, query]);
-
   const onFormSubmit = newQuery => {
     if (query !== newQuery) {
+      setStatus('pending');
+      fetchFun(newQuery, 1);
       setQuery(newQuery);
       setPage(1);
       setGalleryItems([]);
@@ -103,7 +100,9 @@ export default function App() {
     toggleModal();
   };
 
-  const btnClickHandler = () => {
+  const loadMoreClickHandler = async () => {
+    setStatus('pending');
+    fetchFun(query, page + 1);
     setPage(prevState => prevState + 1);
   };
 
@@ -133,7 +132,7 @@ export default function App() {
       {status === 'pending' && <Loader />}
       {status === 'resolved empty' && 'Nothing was found. Try something else.'}
       {galleryItems.length > 0 && status !== 'resolved empty' && (
-        <Button btnClickHandler={btnClickHandler} />
+        <Button loadMoreClickHandler={loadMoreClickHandler} />
       )}
     </div>
   );
